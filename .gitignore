@@ -1,0 +1,4 @@
+dist
+IDE.session
+*.o
+*.swp
