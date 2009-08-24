@@ -2,3 +2,4 @@ dist
 IDE.session
 *.o
 *.swp
+*.db
