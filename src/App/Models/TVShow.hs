@@ -6,6 +6,8 @@ import Prelude hiding (id)
 import Database.HDBC
 import Data.Typeable(Typeable)
 import Data.Data(Data)
+-- import Data.Generics.SYB.WithClass.Basics
+import Text.StringTemplate.GenericStandard
 
 import Database.HDBC
 import Framework.Database.Model

@@ -3,11 +3,14 @@ module Main where
 import Database.HDBC
 import Database.HDBC.Sqlite3
 import Happstack.Server.SimpleHTTP
+import Happstack.Server.HTTP.FileServe(fileServe)
 import Control.Monad
 import Control.Monad.Trans(liftIO)
 import System.Exit(exitSuccess)
 import Control.Concurrent(forkIO, killThread)
 import Data.List
+import Text.StringTemplate
+import Text.StringTemplate.Classes
 
 import App.Migrations(createTables)
 import Framework.Database.Model
@@ -20,46 +23,39 @@ main = do
     createTables db
 
     let conf = nullConf { port = 8080 }
-    -- httpTid <- forkIO $ simpleHTTP' (runApp) conf paths
-    simpleHTTP' (runApp) conf paths
+    httpTid <- forkIO $ simpleHTTP' (runApp) conf paths
+    -- simpleHTTP' (runApp) conf paths
     -- killThread httpTid
+    return httpTid
 
 paths = requestWithDatabase $ msum [
-      dir "test"   $ doTest
-    , dir "dbtest" $ doDbTest
-    , dir "shows"  $ doShows
+      dir "test"  $ doTest
+    , dir "shows" $ showsIndex
+    , staticServe "public"
     , welcome
     ]
+    where staticServe d = dir d (fileServe [] d)
 
 -- doTest ::  ServerPartT (StateT App IO) Response
 doTest ::  AppServerPartT Response
 doTest = do
     (return.toResponse) "Test"
 
-doDbTest ::  AppServerPartT Response
-doDbTest = do
+showsIndex ::  AppServerPartT Response
+showsIndex = do
+    asHtml
     db <- getDatabase
-    liftIO $ do stmnt <- prepare db "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(255))"
-                execute stmnt []
-                stmnt2 <- prepare db "INSERT INTO test (name) VALUES ('Item 1')"
-                execute stmnt2 []
-                commit db
-    (return.toResponse) "Database test"
-
-doShows ::  AppServerPartT Response
-doShows = do
-    db <- getDatabase
-    shows <- liftIO $ do 
+    shows <- liftIO $ do
         stmnt <- prepare db "SELECT * FROM tvshows ORDER BY name"
         execute stmnt []
         rows <- fetchAllRowsAL' stmnt
-        return $  (fromRows rows :: [TVShow.TVShow])
-    (return.toResponse) $ intercalate "<br />\n" (map (\s -> TVShow.name s ++ ", " ++ TVShow.description s ++ ", " ++ TVShow.url s) shows)
+        return $ (fromRows rows :: [TVShow.TVShow])
+    templateWith "shows_index" (assign "shows" shows)
 
 welcome ::  AppServerPartT Response
 welcome = do
-    name <- getAppName
-    (return.toResponse) $ "Welcome to " ++ name ++ "!"
+    asHtml
+    template "welcome_index"
 
 
 
