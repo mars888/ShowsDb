@@ -31,7 +31,6 @@ main = do
 paths ::  AppServerPartT Response
 paths = requestWithDatabase $ msum [
       dir "test"  $ doTest
-    -- , dir "shows" $ showsIndex
     , dir "shows" $ ShowsController.paths
     , staticServe "public"
     , welcome
