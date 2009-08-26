@@ -6,7 +6,7 @@ license: GPL
 license-file: ""
 copyright:
 maintainer:
-build-depends: HDBC, HDBC-sqlite3, base >= 4, happstack-server, mtl, convertible
+build-depends: HDBC, HDBC-sqlite3, base >= 4, filepath, happstack-server, mtl, convertible, HStringTemplate
 stability:
 homepage:
 package-url:
