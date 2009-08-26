@@ -5,4 +5,4 @@
     <link href="/public/stylesheets/main.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
-<div style="margin: 0 0 10px 0; padding: 5px; width:100%; color: white; background: #444488;">ShowsDb</div>
+<div id="page_header">ShowsDb</div>

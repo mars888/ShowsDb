@@ -7,6 +7,22 @@ body {
     margin:  0;
     font-family: Arial;
 }
+#page_header {
+    margin: 0 0 10px 0;
+    padding: 5px;
+    width:100%;
+    color: white;
+    background: #444488;
+    clear:  both;
+}
+#page_footer {
+    margin: 10px 0 0 0;
+    padding: 5px;
+    width:100%;
+    color: white;
+    background: #444488;
+    clear:  both;
+}
 table {
     border-collapse: collapse;
 }
@@ -17,3 +33,29 @@ td {
 td.odd {
     background: white;
 }
+
+form label {
+    float:  left;
+    clear:  left;
+    width:  200px;
+}
+form input, form textarea {
+    border: 1px solid black;
+    float:  left;
+    width:  400px;
+}
+form input[type="submit"] {
+    margin-top:  10px;
+    margin-left: 200px;
+    clear:  left;
+}
+a.cancel {
+    font-size:  0.8em;
+    float:  left;
+    background: #eeeeff;
+    padding:    2px;
+    margin-top: 9px;
+    margin-left: 10px;
+}
+
+

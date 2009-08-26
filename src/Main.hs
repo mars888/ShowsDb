@@ -17,20 +17,22 @@ import Framework.Database.Model
 import qualified App.Models.TVShow as TVShow
 import Framework.Database.Database(connectDatabase)
 import Framework.AppState
+import qualified App.Controllers.Shows as ShowsController
 
 main = do
     db <- connectDatabase
     createTables db
 
     let conf = nullConf { port = 8080 }
-    httpTid <- forkIO $ simpleHTTP' (runApp) conf paths
-    -- simpleHTTP' (runApp) conf paths
-    -- killThread httpTid
-    return httpTid
+    -- httpTid <- forkIO $ simpleHTTP' (runApp) conf paths
+    simpleHTTP' (runApp) conf paths
+    -- return httpTid
 
+paths ::  AppServerPartT Response
 paths = requestWithDatabase $ msum [
       dir "test"  $ doTest
-    , dir "shows" $ showsIndex
+    -- , dir "shows" $ showsIndex
+    , dir "shows" $ ShowsController.paths
     , staticServe "public"
     , welcome
     ]
@@ -40,17 +42,6 @@ paths = requestWithDatabase $ msum [
 doTest ::  AppServerPartT Response
 doTest = do
     (return.toResponse) "Test"
-
-showsIndex ::  AppServerPartT Response
-showsIndex = do
-    asHtml
-    db <- getDatabase
-    shows <- liftIO $ do
-        stmnt <- prepare db "SELECT * FROM tvshows ORDER BY name"
-        execute stmnt []
-        rows <- fetchAllRowsAL' stmnt
-        return $ (fromRows rows :: [TVShow.TVShow])
-    templateWith "shows_index" (assign "shows" shows)
 
 welcome ::  AppServerPartT Response
 welcome = do
