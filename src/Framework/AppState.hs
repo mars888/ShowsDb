@@ -3,18 +3,18 @@ module Framework.AppState where
 import Happstack.Server.SimpleHTTP
 import Control.Monad.State
 import Control.Monad.Reader
-import Database.HDBC(disconnect)
+import Database.HDBC(IConnection(..), disconnect)
 import Database.HDBC.Sqlite3(Connection)
 import Text.StringTemplate
 import Text.StringTemplate.Classes
 import System.FilePath
 
-import Framework.Database.Database(connectDatabase)
+import Framework.Database(CurrentConnection, connectDatabase)
 import Data.Maybe(fromJust)
 
 data App = App {
       appName :: String
-    , appDatabase :: Maybe Connection
+    , appDatabase :: Maybe CurrentConnection
     , templateGroup :: STGroup String
     }
 
@@ -43,7 +43,7 @@ getApp = lift ask
 getAppName ::  AppServerPartT String
 getAppName = asks appName
 
-getDatabase ::  AppServerPartT Connection
+getDatabase ::  AppServerPartT CurrentConnection
 getDatabase = lift (asks appDatabase) >>= return.fromJust
 
 requestWithDatabase :: AppServerPartT b -> AppServerPartT b

@@ -15,7 +15,7 @@ import Text.StringTemplate.Classes
 import App.Migrations(createTables)
 import Framework.Database.Model
 import qualified App.Models.TVShow as TVShow
-import Framework.Database.Database(connectDatabase)
+import Framework.Database(connectDatabase)
 import Framework.AppState
 import qualified App.Controllers.Shows as ShowsController
 
@@ -43,9 +43,7 @@ doTest = do
     (return.toResponse) "Test"
 
 welcome ::  AppServerPartT Response
-welcome = do
-    asHtml
-    template "welcome_index"
+welcome = asHtml >> template "welcome_index"
 
 
 
