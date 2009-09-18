@@ -10,6 +10,7 @@ import Text.StringTemplate.GenericStandard
 
 import Database.HDBC
 import Framework.Database.Model
+import Framework.Database.Specification
 
 data TVShow = TVShow {
       id          :: Int
@@ -18,6 +19,13 @@ data TVShow = TVShow {
     , url         :: String
     }
     deriving(Show, Read, Typeable, Data)
+
+table = defineTable "tvshows" [
+      PrimaryKeyField "id"
+    , StringField     "name"
+    , StringField     "url"
+    , TextField       "description"
+    ]
 
 instance DBModel TVShow where
     fromRow lst = TVShow
