@@ -21,13 +21,8 @@ paths = msum [
 index ::  AppServerPartT Response
 index = do
     asHtml
-    db <- getDatabase
-    shows <- liftIO $ do
-        stmnt <- prepare db "SELECT * FROM tvshows ORDER BY name"
-        execute stmnt []
-        rows <- fetchAllRowsAL' stmnt
-        return $ (fromRows rows :: [TVShow.TVShow])
-    templateWith "shows_index" (assign "shows" shows)
+    shows <- fetchAllModels "SELECT * FROM tvshows ORDER BY name" []
+    templateWith "shows_index" (assign "shows" (shows::[TVShow.TVShow]))
 
 new ::  AppServerPartT Response
 new = do

@@ -1,26 +1,26 @@
-module Framework.AppState where
+-- | Provides a monad transformer for working with app specific state within a 'Happstack.Server.SimpleHTTP.ServerPartT'.
+-- Also provides associated functions to easilly handle various related tasks.
+module Framework.AppState (
+  -- * Exported modules
+  module Framework.AppState.Types
+, module Framework.AppState.Templates
+, module Framework.AppState.Database
+  -- * AppState creation and support
+, initApp
+, runApp
+  -- * Helpers
+, asHtml
+) where
 
-import Happstack.Server.SimpleHTTP
-import Control.Monad.State
-import Control.Monad.Reader
-import Database.HDBC(IConnection(..), disconnect)
-import Database.HDBC.Sqlite3(Connection)
-import Text.StringTemplate
-import Text.StringTemplate.Classes
-import System.FilePath
+import Happstack.Server.SimpleHTTP (setHeaderM)
+import Control.Monad.Reader (runReaderT)
+import Text.StringTemplate (STGroup)
 
-import Framework.Database(CurrentConnection, connectDatabase)
-import Data.Maybe(fromJust)
+import Framework.AppState.Types
+import Framework.AppState.Templates
+import Framework.AppState.Database
 
-data App = App {
-      appName :: String
-    , appDatabase :: Maybe CurrentConnection
-    , templateGroup :: STGroup String
-    }
-
-type AppState = ReaderT App IO
-type AppServerPartT = ServerPartT AppState
-
+-- | Create a new 'App' instance with default settings and given directory group.
 initApp ::  STGroup String -> App
 initApp templateDirGroup = do
     App {
@@ -29,74 +29,25 @@ initApp templateDirGroup = do
     , templateGroup = templateDirGroup
     }
 
+-- | Run a new AppState using 'initApp' to create it.
 --
--- App support
+-- Can be used in the following way:
 --
+-- > let conf = nullConf { port = 8080 }
+-- > simpleHTTP' (runApp) conf paths
 runApp ::  AppState a -> IO a
 runApp appState = do
     dirGroup <- getDirectoryGroup
     flip runReaderT (initApp dirGroup) $ appState
 
-getApp ::  AppServerPartT App
-getApp = lift ask
-
-getAppName ::  AppServerPartT String
-getAppName = asks appName
-
-getDatabase ::  AppServerPartT CurrentConnection
-getDatabase = lift (asks appDatabase) >>= return.fromJust
-
-requestWithDatabase :: AppServerPartT b -> AppServerPartT b
-requestWithDatabase f = do
-    db  <- liftIO connectDatabase
-    app <- getApp
-    local (\app -> app { appDatabase = Just db }) runFunction
-    where runFunction = do res <- f
-                           getDatabase >>= liftIO.disconnect
-                           return res
-
 --
 -- Helpers
 --
+
+-- | Set the output Content-Type to text/html.
 asHtml :: AppServerPartT ()
 asHtml = setHeaderM "Content-type" "text/html"
 
---
--- Templates
---
-
--- Template state monad type.
-type TemplateMonad = State  (StringTemplate String)
-
-templateDir :: FilePath
-templateDir = "templates"
-
-getDirectoryGroup :: IO (STGroup String)
-getDirectoryGroup = directoryGroup "templates"
-
-getTemplate ::  String -> AppServerPartT (StringTemplate String)
-getTemplate name = do
-    dirGroup <- asks templateGroup
-    return $ (fromJust.stGetFirst.dirGroup) name
-
-template :: FilePath -> AppServerPartT Response
-template path = do
-    tpl <- getTemplate path
-    (return.toResponse.toString) tpl
-
-templateWith :: FilePath -> TemplateMonad a -> AppServerPartT Response
-templateWith path f = do
-    -- let fullPath = joinPath [templateDir, path]
-    -- content <- liftIO $ readFile fullPath
-    tpl <- getTemplate path
-    let finalTpl = execState f tpl
-    (return.toResponse.toString) finalTpl
-
-assign ::  (ToSElem a) => String -> a -> TemplateMonad ()
-assign key value = do
-    tpl <- get
-    let newTpl = setAttribute key value tpl
-    put newTpl
 
 
 
