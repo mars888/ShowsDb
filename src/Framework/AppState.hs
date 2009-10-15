@@ -10,9 +10,13 @@ module Framework.AppState (
 , runApp
   -- * Helpers
 , asHtml
+, redirectTo
+, param
+, intParam
 ) where
 
-import Happstack.Server.SimpleHTTP (setHeaderM)
+import Happstack.Server.SimpleHTTP
+import Control.Monad (mzero)
 import Control.Monad.Reader (runReaderT)
 import Text.StringTemplate (STGroup)
 
@@ -48,7 +52,34 @@ runApp appState = do
 asHtml :: AppServerPartT ()
 asHtml = setHeaderM "Content-type" "text/html"
 
+-- | Redirect to url.
+redirectTo :: String -> AppServerPartT Response
+redirectTo url =  seeOther url =<< (return . toResponse) urlName
+    where urlName = "Redirected to: " ++ url
 
+-- | Pop an element of the path list and pass it to the given function.
+-- If no elements are left, will call 'mzero' to halt the current chain.
+--
+-- Example:
+--
+-- > dir "items" $ param $ \name -> (return.toResponse) name
+param :: (String -> AppServerPartT a) -> AppServerPartT a
+param f = do
+    rq <- askRq
+    case rqPaths rq of
+         x:xs -> localRq (\newRq -> newRq { rqPaths = xs }) (f x)
+         []   -> mzero
+
+-- | Like 'param', but will make sure the parameter can be read as an 'Int'.
+--
+-- Example:
+--
+-- > dir "items" $ intParam $ \id -> (return.toResponse.show) id
+intParam :: (Int -> AppServerPartT a) -> AppServerPartT a
+intParam f = param $ \par ->
+    case reads par of
+         [(x, "")] -> f x
+         _         -> mzero
 
 
 
