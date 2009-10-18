@@ -4,12 +4,15 @@ module Framework.AppState.Database (
 , requestWithDatabase
   -- * Query functions.
 , commit
+, execute
+, execute'
 , query
 , fetchAll
 , fetchAllModels
 , fetchModel
   -- * Exports
 , module Database.HDBC.SqlValue
+, module Framework.Database.Sql
 ) where
 
 import qualified Database.HDBC as HDBC
@@ -20,6 +23,7 @@ import Control.Monad.Reader (asks, local)
 import Data.Maybe (fromJust)
 
 import Framework.Database(CurrentConnection, connectDatabase)
+import Framework.Database.Sql
 import Framework.AppState.Types
 
 getDatabase ::  AppServerPartT CurrentConnection
@@ -39,13 +43,53 @@ commit = do
     db <- getDatabase
     liftIO (HDBC.commit db)
 
-query :: String -> [HDBC.SqlValue] -> AppServerPartT Integer
-query query params = do
+execute' :: String -> [HDBC.SqlValue] -> AppServerPartT Integer
+execute' query params = do
     db <- getDatabase
     liftIO $ do
         stmnt <- HDBC.prepare db query
         HDBC.execute stmnt params
 
+execute :: (GenerateQuery a, GenerateParams a) => a -> AppServerPartT Integer
+execute query = do
+    db <- getDatabase
+    liftIO $ do
+        stmnt <- HDBC.prepare db (toQuery query)
+        HDBC.execute stmnt (toParams query)
+
+query :: (GenerateQuery a, GenerateParams a) => a -> AppServerPartT [RowAssocList]
+query query = do
+    db <- getDatabase
+    liftIO $ do
+        stmnt <- HDBC.prepare db (toQuery query)
+        HDBC.execute stmnt (toParams query)
+        rows <- HDBC.fetchAllRowsAL' stmnt
+        return rows
+
+-- | Wrapper to execute a prepared statement and return results as 'RowAssocList'.
+fetchAll :: (GenerateQuery a, GenerateParams a) => a -> AppServerPartT [RowAssocList]
+fetchAll query = do
+    db <- getDatabase
+    liftIO $ do
+        stmnt <- HDBC.prepare db (toQuery query)
+        HDBC.execute stmnt (toParams query)
+        rows <- HDBC.fetchAllRowsAL' stmnt
+        return rows
+
+-- | Like 'fetchAll', but return results as a list of DBModel instances.
+-- Might have to use extra typehints to tell the compiler which types are expected.
+fetchAllModels :: (GenerateQuery a, GenerateParams a, DBModel b) => a -> AppServerPartT [b]
+fetchAllModels query = return . fromRows =<< fetchAll query
+
+fetchModel :: (GenerateQuery a, GenerateParams a, DBModel b) => a -> AppServerPartT (Maybe b)
+fetchModel query = do
+    items <- fetchAll query
+    case items of
+         x:_ -> return.Just $ (fromRow x)
+         _   -> return Nothing
+
+
+{-
 -- | Wrapper to execute a prepared statement and return results as 'RowAssocList'.
 fetchAll :: String -> [HDBC.SqlValue] -> AppServerPartT [RowAssocList]
 fetchAll query params = do
@@ -67,4 +111,4 @@ fetchModel query params = do
     case items of
          x:_ -> return.Just $ (fromRow x)
          _   -> return Nothing
-
+-}

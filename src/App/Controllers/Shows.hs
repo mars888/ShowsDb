@@ -5,7 +5,6 @@ module App.Controllers.Shows (
 import Control.Monad
 import Control.Monad.Trans(liftIO)
 import Happstack.Server.SimpleHTTP
-import Database.HDBC
 
 import Framework.AppState
 import Framework.Database.Model
@@ -21,7 +20,8 @@ paths = msum [
 index ::  AppServerPartT Response
 index = do
     asHtml
-    shows <- fetchAllModels "SELECT * FROM tvshows ORDER BY name" []
+    -- shows <- fetchAllModels "SELECT * FROM tvshows ORDER BY name" []
+    shows <- fetchAllModels $ select "*" `from` "tvshows" `orderBy` "name"
     templateWith "shows_index" (assign "shows" (shows::[TVShow.TVShow]))
 
 new ::  AppServerPartT Response
@@ -45,15 +45,17 @@ instance FromData TVShow.TVShow where
 create ::  AppServerPartT Response
 create = do
     asHtml
-    tvshow <- getData :: AppServerPartT (Maybe TVShow.TVShow)
+    tvshow <- getData
     case tvshow of
          Nothing         -> (return.toResponse) "Invalid"
-         Just (tvshow@_) -> do
-             db <- getDatabase
-             liftIO $ do stmnt <- prepare db "INSERT INTO tvshows (name, description, url) VALUES (?, ?, ?)"
-                         execute stmnt [toSql$TVShow.name tvshow, toSql$TVShow.description tvshow, toSql$TVShow.url tvshow]
-                         commit db
-             seeOther "/shows/" =<< (return.toResponse) "Added"
+         Just tvshow -> do
+             --execute $ insertInto "tvshows" `insertValues` ["name"        #># TVShow.name        tvshow
+                                                           --,"description" #># TVShow.description tvshow
+                                                           --,"url"         #># TVShow.url         tvshow
+                                                           --]
+             execute $ insertInto (tvshow :: TVShow.TVShow)
+             commit
+             redirectTo "/shows/"
 
 
 

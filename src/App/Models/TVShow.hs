@@ -11,6 +11,7 @@ import Text.StringTemplate.GenericStandard
 import Database.HDBC
 import Framework.Database.Model
 import Framework.Database.Specification
+import Framework.Database.Sql
 
 data TVShow = TVShow {
       id          :: Int
@@ -47,5 +48,15 @@ empty = TVShow { id             = -1
              , description    = "N/A"
              , url            = ""
              }
+
+
+instance Insertable TVShow where
+    insertInto show = insertInto "tvshows" `insertValues`
+                                           [ "name"        #># name show
+                                           , "url"         #># url show
+                                           , "description" #># description show
+                                           ]
+
+
 
 
